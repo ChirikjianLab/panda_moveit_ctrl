@@ -1,3 +1,4 @@
+src/panda_moveit_ctrl/*.pyc
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
