@@ -1,5 +1,6 @@
-# Class to provide service to control Panda with MoveIt
-# Author: Hongtao Wu, Johns Hopkins University
+# Class to provide services to control Panda with MoveIt
+# Author: Hongtao Wu
+# Johns Hopkins University
 # Jan 21, 2021
 
 from __future__ import print_function
@@ -85,6 +86,7 @@ class PandaRobotService(object):
         joint_goal = self.gripper_group.get_current_joint_values()
         joint_goal[0] = req.width
         joint_goal[1] = req.width
+        print(joint_goal)
         self.gripper_group.go(joint_goal, wait=True)
         self.gripper_group.stop()
 

@@ -1,14 +1,22 @@
 # Panda MoveIt Control
-Control Panda robot with MoveIt
 
 Author: Hongtao Wu
 
-Date: Mar 05, 2021
+ROS package to control Panda robot with MoveIt via ROS service.
+The Panda robot requires a realtime kernel to work with.
+We set up a realtime kernel on a Ubuntu 16.04 desktop and advertise the ROS service to interact with the robot via [ROS MultipleMachine](http://wiki.ros.org/ROS/Tutorials/MultipleMachines).
 
-# Installation
+## Installation
 ------
+- [libfranka](https://frankaemika.github.io/docs/installation_linux.html)
+- [franka_ros](https://frankaemika.github.io/docs/installation_linux.html)
 
-# Usage
+## ROS service
+- ```move_to_joint```: control the robot to a joint configuration
+- ```move_to_cartesian```: control the robot to a cartesian pose
+- ```move_gripper```: control the gripper
+
+## Usage
 ------
 * Initialize MoveIt and Rviz
 ```
@@ -18,8 +26,5 @@ roslaunch panda_moveit_config panda_control_moveit_rviz.launch robot_ip:=<robot_
 ```
 rosrun panda_moveit_ctrl panda_moveit_ctrl_server_node.py
 ```
-* Control the robot by calling the service **move_to_joint**, **move_to_cartesian**, and **move_gripper**. The sample code to control is in *scripts/panda_moveit_ctrl_node.py* and *src/panda_moveit_ctrl/panda_robot.py*.
-
-# TODO
-------
-- [ ] Add installation guide in README
+* Control the robot by calling the service. 
+A sample code to control is in ```scripts/panda_moveit_ctrl_node.py```.
