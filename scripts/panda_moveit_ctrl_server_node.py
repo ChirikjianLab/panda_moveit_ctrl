@@ -2,6 +2,8 @@
 
 # ROS node to start the service for controlling the robot
 # Author: Hongtao Wu
+# Johns Hopkins University
+# National University of Singapore
 # Date: Mar 05
 
 import rospy

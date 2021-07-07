@@ -2,6 +2,8 @@
 
 # ROS node to publish the service
 # Author: Hongtao Wu
+# Johns Hopkins University
+# National University of Singapore
 # Date: Mar 05, 2021
 
 import rospy

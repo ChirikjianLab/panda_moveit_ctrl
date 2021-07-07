@@ -1,5 +1,7 @@
 # Class to interact with Panda
-# Author: Hongtao Wu, Johns Hopkins University
+# Author: Hongtao Wu
+# Johns Hopkins University
+# National University of Singapore
 # Jan 25, 2021
 
 from __future__ import print_function

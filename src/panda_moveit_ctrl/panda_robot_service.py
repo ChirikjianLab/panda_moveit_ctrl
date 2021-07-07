@@ -1,6 +1,7 @@
 # Class to provide services to control Panda with MoveIt
 # Author: Hongtao Wu
 # Johns Hopkins University
+# National University of Singapore
 # Jan 21, 2021
 
 from __future__ import print_function
