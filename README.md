@@ -7,7 +7,6 @@ The Panda robot requires a realtime kernel to work with.
 We set up a realtime kernel on a Ubuntu 16.04 desktop and advertise the ROS service to interact with the robot via [ROS MultipleMachine](http://wiki.ros.org/ROS/Tutorials/MultipleMachines).
 
 ## Installation
-------
 - [libfranka](https://frankaemika.github.io/docs/installation_linux.html)
 - [franka_ros](https://frankaemika.github.io/docs/installation_linux.html)
 
@@ -17,7 +16,6 @@ We set up a realtime kernel on a Ubuntu 16.04 desktop and advertise the ROS serv
 - ```move_gripper```: control the gripper
 
 ## Usage
-------
 * Initialize MoveIt and Rviz
 ```
 roslaunch panda_moveit_config panda_control_moveit_rviz.launch robot_ip:=<robot_ip> load_gripper:=<true/false>
