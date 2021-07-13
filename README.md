@@ -9,6 +9,7 @@ We set up a realtime kernel on a Ubuntu 16.04 desktop and advertise the ROS serv
 ## Installation
 - [libfranka](https://frankaemika.github.io/docs/installation_linux.html)
 - [franka_ros](https://frankaemika.github.io/docs/installation_linux.html)
+- [franka_ros_interface](https://github.com/justagist/franka_ros_interface)
 
 ## ROS service
 - ```move_to_joint```: control the robot to a joint configuration
