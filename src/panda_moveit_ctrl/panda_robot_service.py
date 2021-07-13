@@ -1,7 +1,5 @@
-# Class to provide services to control Panda with MoveIt
-# Author: Hongtao Wu
-# Johns Hopkins University
-# National University of Singapore
+# Class to provide service to control Panda with MoveIt
+# Author: Hongtao Wu, Johns Hopkins University
 # Jan 21, 2021
 
 from __future__ import print_function
@@ -14,6 +12,7 @@ import tf2_ros
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
+import franka_interface
 
 from panda_moveit_ctrl.srv import *
 
@@ -67,10 +66,39 @@ class PandaRobotService(object):
         # Set up the gripper
         if load_gripper:
             gripper_group_name = "hand"
-            self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name)
+            self.configure_gripper(gripper_group_name)
+            # self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name)
             rospy.loginfo("Gripper loaded")
             self.setupGripperServer()
             rospy.sleep(0.5)
+            
+        
+    def configure_gripper(self, gripper_joint_names):
+        """
+        initialize gripper
+        """
+        self.gripper = franka_interface.GripperInterface()
+        if not self.gripper.exists:
+            self.gripper = None
+            return
+    
+    def gripper_state(self):
+        """
+        Return Gripper state {'position', 'force'}. Only available if Franka gripper is connected.
+
+        :rtype: dict ({str : numpy.ndarray (shape:(2,)), str : numpy.ndarray (shape:(2,))})
+        :return: dict of position and force
+
+          - 'position': :py:obj:`numpy.ndarray`
+          - 'force': :py:obj:`numpy.ndarray`
+        """
+        gripper_state = {}
+
+        if self.gripper:
+            gripper_state['position'] = self.gripper.joint_ordered_positions()
+            gripper_state['force'] = self.gripper.joint_ordered_efforts()
+
+        return gripper_state
 
     def setupGripperServer(self):
         rospy.loginfo("Setting up Gripper server...")
@@ -84,14 +112,10 @@ class PandaRobotService(object):
         req.width: float
         """
         print("move_gripper service receive: ", req.width)
-        joint_goal = self.gripper_group.get_current_joint_values()
-        joint_goal[0] = req.width
-        joint_goal[1] = req.width
-        print(joint_goal)
-        self.gripper_group.go(joint_goal, wait=True)
-        self.gripper_group.stop()
-
+        self.gripper.move_joints(req.width)
+        rospy.loginfo(self.gripper_state())
         rospy.sleep(0.2)
+        rospy.loginfo(self.gripper_state())
         return MoveGripperResponse("Successfully move gripper!")
 
     def setupMoveToJointServer(self):

@@ -1,7 +1,5 @@
 # Class to interact with Panda
-# Author: Hongtao Wu
-# Johns Hopkins University
-# National University of Singapore
+# Author: Hongtao Wu, Johns Hopkins University
 # Jan 25, 2021
 
 from __future__ import print_function
@@ -40,8 +38,8 @@ class PandaRobot(object):
 
         # Set up the gripper client
         if load_gripper:
-            self.open_width = 0.04
-            self.close_width = 0.01
+            self.open_width = 0.08
+            self.close_width = 0.000927
             self.setupMoveGripperClient()
             rospy.sleep(0.5)
 
