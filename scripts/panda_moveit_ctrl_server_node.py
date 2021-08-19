@@ -13,6 +13,8 @@ if __name__ == "__main__":
     vel = 0.4
     acc = 0.4
     load_gripper = True
-    PRS = PandaRobotService(vel, acc, load_gripper=load_gripper)
+    ee = "panda_hand"
+    PRS = PandaRobotService(vel, acc, ee=ee, load_gripper=load_gripper)
 
+    
     rospy.spin()
