@@ -20,7 +20,7 @@ class PandaRobotService(object):
     """
     Class used to set up service to interact with the Panda robot
     """
-    def __init__(self, vel, acc, ee="panda_hand", move_joint=True, move_cartesian=True, load_gripper=False):
+    def __init__(self, vel, acc, ee="panda_hand", move_joint=True, move_cartesian=True, load_gripper=True):
         """
         move_joint and move_cartesian are set true if you want to 
         move the robot by joint position and cartesian pose
@@ -71,6 +71,8 @@ class PandaRobotService(object):
             rospy.loginfo("Gripper loaded")
             self.setupGripperServer()
             rospy.sleep(0.5)
+        
+        rospy.loginfo("Ready!")
             
         
     def configure_gripper(self, gripper_joint_names):
@@ -147,7 +149,7 @@ class PandaRobotService(object):
         Move to cartesian position
         
         req.pos: (3, ) numpy array, position of end effector
-        req.quat: (4, ) numpy array, quaternion (w, x, y, z)
+        req.quat: (4, ) numpy array, quaternion (x, y, z, w)
         """
         print("move_to_cartesian receive quat: ", req.quat.data)
         print("move_to_cartesian receive pos: ", req.pos.data)
