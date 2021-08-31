@@ -114,7 +114,7 @@ class PandaRobotService(object):
             req.width: float
         """
 
-        rospy.loginfo("move_gripper service receive: ", req.width)
+        rospy.loginfo("move_gripper service receive: %s", req.width)
         self.gripper.move_joints(req.width)
         rospy.loginfo(self.gripper_state())
         rospy.sleep(0.2)
@@ -133,8 +133,8 @@ class PandaRobotService(object):
         Args:
             req.joint_config (7, numpy array) joint position
         """
-
-        rospy.loginfo("move_to_joint service receive: ", req.joint_config.data)
+        
+        rospy.loginfo("move_to_joint service receive: %s", req.joint_config.data)
         self.group.go(req.joint_config.data, wait=True)
         self.group.stop()
 
@@ -155,8 +155,8 @@ class PandaRobotService(object):
             req.quat (4, numpy array) quaternion (x, y, z, w)
         """
 
-        rospy.loginfo("move_to_cartesian receive quat: ", req.quat.data)
-        rospy.loginfo("move_to_cartesian receive pos: ", req.pos.data)
+        rospy.loginfo("move_to_cartesian receive quat: %s", req.quat.data)
+        rospy.loginfo("move_to_cartesian receive pos: %s", req.pos.data)
         pose_goal = geometry_msgs.msg.Pose()
         pose_goal.orientation.x = req.quat.data[0]
         pose_goal.orientation.y = req.quat.data[1]
