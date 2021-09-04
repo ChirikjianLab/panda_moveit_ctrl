@@ -135,12 +135,19 @@ class PandaRobotService(object):
         """
         
         rospy.loginfo("move_to_joint service receive: %s", req.joint_config.data)
-        self.group.go(req.joint_config.data, wait=True)
+        move_success = self.group.go(req.joint_config.data, wait=True)
         self.group.stop()
 
         rospy.sleep(0.5)
 
-        return MoveToJointResponse("Successfully move to joint!")
+        if move_success:
+            success = 1
+            rospy.loginfo("Success in cartesian motion...")
+        else:
+            success = 0
+            rospy.loginfo("Failure in cartesian motion...")
+
+        return MoveToJointResponse(success)
 
     def setupMoveToCartesianServer(self):
         rospy.loginfo("Setting up MoveToCartesian server...")
