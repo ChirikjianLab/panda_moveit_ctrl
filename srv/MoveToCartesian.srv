@@ -1,4 +1,4 @@
 std_msgs/Float64MultiArray pos
 std_msgs/Float64MultiArray quat
 ---
-string status
+int8 success

@@ -1,7 +1,5 @@
-# Class to provide services to control Panda with MoveIt
-# Author: Hongtao Wu
-# Johns Hopkins University
-# National University of Singapore
+# Class to provide service to control Panda with MoveIt
+# Author: Hongtao Wu, Johns Hopkins University
 # Jan 21, 2021
 
 from __future__ import print_function
@@ -14,16 +12,22 @@ import tf2_ros
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
+import franka_interface
 
 from panda_moveit_ctrl.srv import *
 
 class PandaRobotService(object):
-    """
-    Class used to set up service to interact with the Panda robot
-    """
-    def __init__(self, vel, acc, ee="panda_hand", move_joint=True, move_cartesian=True, load_gripper=False):
-        """
-        move_joint and move_cartesian are set true if you want to 
+ 
+    def __init__(self, 
+                 vel, 
+                 acc, 
+                 ee="panda_hand", 
+                 move_joint=True, 
+                 move_cartesian=True, 
+                 load_gripper=True
+        ):
+        """Class used to set up service to interact with the Panda robot.
+        move_joint and move_cartesian are set true if you want to
         move the robot by joint position and cartesian pose
         """
 
@@ -67,10 +71,36 @@ class PandaRobotService(object):
         # Set up the gripper
         if load_gripper:
             gripper_group_name = "hand"
-            self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name)
+            self.configure_gripper(gripper_group_name)
+            # self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name)
             rospy.loginfo("Gripper loaded")
             self.setupGripperServer()
             rospy.sleep(0.5)
+        
+        rospy.loginfo("Ready!")
+            
+    def configure_gripper(self, gripper_joint_names):
+        """Initialize gripper."""
+
+        self.gripper = franka_interface.GripperInterface()
+        if not self.gripper.exists:
+            self.gripper = None
+            return
+    
+    def gripper_state(self):
+        """Return Gripper state {'position', 'force'}. 
+        Only available if Franka gripper is connected.
+
+        Returns:
+            gripper_state (dict): dict of position and force
+        """
+        gripper_state = {}
+
+        if self.gripper:
+            gripper_state['position'] = self.gripper.joint_ordered_positions()
+            gripper_state['force'] = self.gripper.joint_ordered_efforts()
+
+        return gripper_state
 
     def setupGripperServer(self):
         rospy.loginfo("Setting up Gripper server...")
@@ -78,20 +108,18 @@ class PandaRobotService(object):
         rospy.loginfo("Finish setting up Gripper server...")
     
     def handleMoveGripper(self, req):
-        """
-        Move Gripper
+        """Move Gripper
 
-        req.width: float
+        Args:
+            req.width: float
         """
-        print("move_gripper service receive: ", req.width)
-        joint_goal = self.gripper_group.get_current_joint_values()
-        joint_goal[0] = req.width
-        joint_goal[1] = req.width
-        print(joint_goal)
-        self.gripper_group.go(joint_goal, wait=True)
-        self.gripper_group.stop()
 
+        rospy.loginfo("move_gripper service receive: %s", req.width)
+        self.gripper.move_joints(req.width)
+        rospy.loginfo(self.gripper_state())
         rospy.sleep(0.2)
+        rospy.loginfo(self.gripper_state())
+
         return MoveGripperResponse("Successfully move gripper!")
 
     def setupMoveToJointServer(self):
@@ -100,18 +128,26 @@ class PandaRobotService(object):
         rospy.loginfo("Finish setting up MoveToJoint server...")
         
     def handleMoveToJoint(self, req):
-        """
-        Move to joint position
+        """Move to joint position
         
-        req.joint_config: (7, ) numpy array, joint position
+        Args:
+            req.joint_config (7, numpy array) joint position
         """
-        print("move_to_joint service receive: ", req.joint_config.data)
-        self.group.go(req.joint_config.data, wait=True)
+        
+        rospy.loginfo("move_to_joint service receive: %s", req.joint_config.data)
+        move_success = self.group.go(req.joint_config.data, wait=True)
         self.group.stop()
 
         rospy.sleep(0.5)
 
-        return MoveToJointResponse("Successfully move to joint!")
+        if move_success:
+            success = 1
+            rospy.loginfo("Success in cartesian motion...")
+        else:
+            success = 0
+            rospy.loginfo("Failure in cartesian motion...")
+
+        return MoveToJointResponse(success)
 
     def setupMoveToCartesianServer(self):
         rospy.loginfo("Setting up MoveToCartesian server...")
@@ -119,14 +155,15 @@ class PandaRobotService(object):
         rospy.loginfo("Finish setting up MoveToCartesian server...")    
 
     def handleMoveToCartesian(self, req):
-        """
-        Move to cartesian position
+        """Move to cartesian position
         
-        req.pos: (3, ) numpy array, position of end effector
-        req.quat: (4, ) numpy array, quaternion (w, x, y, z)
+        Args:
+            req.pos (3, numpy array) position of end effector
+            req.quat (4, numpy array) quaternion (x, y, z, w)
         """
-        print("move_to_cartesian receive quat: ", req.quat.data)
-        print("move_to_cartesian receive pos: ", req.pos.data)
+
+        rospy.loginfo("move_to_cartesian receive quat: %s", req.quat.data)
+        rospy.loginfo("move_to_cartesian receive pos: %s", req.pos.data)
         pose_goal = geometry_msgs.msg.Pose()
         pose_goal.orientation.x = req.quat.data[0]
         pose_goal.orientation.y = req.quat.data[1]
@@ -137,10 +174,17 @@ class PandaRobotService(object):
         pose_goal.position.z = req.pos.data[2]
 
         self.group.set_pose_target(pose_goal)
-        plan = self.group.go(wait=True)
+        move_success = self.group.go(wait=True)
         self.group.stop()
         self.group.clear_pose_targets()
 
         rospy.sleep(0.5)
 
-        return MoveToCartesianResponse("Successfully move to cartesian")
+        if move_success:
+            success = 1
+            rospy.loginfo("Success in cartesian motion...")
+        else:
+            success = 0
+            rospy.loginfo("Failure in cartesian motion...")
+
+        return MoveToCartesianResponse(success)
