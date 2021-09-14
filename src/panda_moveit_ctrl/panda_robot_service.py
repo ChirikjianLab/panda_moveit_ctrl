@@ -101,6 +101,25 @@ class PandaRobotService(object):
             gripper_state['force'] = self.gripper.joint_ordered_efforts()
 
         return gripper_state
+    
+    def finger_position(self):
+        """Return average finger position
+        
+        Returns:
+            finger_position (float): average position of right and left finger"""
+
+        finger_position_list = []
+        finger_position = None
+
+        for i in range(3):
+            gripper_state = self.gripper_state()
+            finger_position_list.append(gripper_state['position'])
+            rospy.sleep(0.1)
+        
+        finger_position_list = np.array(finger_position_list).flatten()
+        finger_position = np.average(finger_position_list)
+        
+        return finger_position
 
     def setupGripperServer(self):
         rospy.loginfo("Setting up Gripper server...")
@@ -116,11 +135,12 @@ class PandaRobotService(object):
 
         rospy.loginfo("move_gripper service receive: %s", req.width)
         self.gripper.move_joints(req.width)
-        rospy.loginfo(self.gripper_state())
-        rospy.sleep(0.2)
-        rospy.loginfo(self.gripper_state())
+        rospy.sleep(0.5)
 
-        return MoveGripperResponse("Successfully move gripper!")
+        finger_position = self.finger_position()
+        rospy.loginfo("Finger position: %s", finger_position)
+        
+        return finger_position
 
     def setupMoveToJointServer(self):
         rospy.loginfo("Setting up MoveToJoint server...")
