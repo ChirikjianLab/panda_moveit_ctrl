@@ -75,6 +75,7 @@ class PandaRobotService(object):
             # self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name)
             rospy.loginfo("Gripper loaded")
             self.setupGripperServer()
+            self.setupCloseGripperServer()
             rospy.sleep(0.5)
         
         rospy.loginfo("Ready!")
@@ -135,6 +136,24 @@ class PandaRobotService(object):
 
         rospy.loginfo("move_gripper service receive: %s", req.width)
         self.gripper.move_joints(req.width)
+        rospy.sleep(0.5)
+
+        finger_position = self.finger_position()
+        rospy.loginfo("Finger position: %s", finger_position)
+        
+        return finger_position
+
+    def setupCloseGripperServer(self):
+        rospy.loginfo("Setting up CloseGripper server...")
+        self.close_gripper_server = rospy.Service("close_gripper", CloseGripper, self.handleCloseGripper)
+        rospy.loginfo("Finish setting up CloseGripper server...")
+    
+    def handleCloseGripper(self, req):
+        """Close Gripper
+        """
+
+        rospy.loginfo("close gripper")
+        self.gripper.close()
         rospy.sleep(0.5)
 
         finger_position = self.finger_position()

@@ -61,6 +61,7 @@ add_service_files(
   MoveToJoint.srv
   MoveToCartesian.srv
   MoveGripper.srv
+  CloseGripper.srv
 )
 
 ## Generate actions in the 'action' folder
