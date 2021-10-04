@@ -62,6 +62,7 @@ add_service_files(
   MoveToCartesian.srv
   MoveGripper.srv
   CloseGripper.srv
+  GetEEXform.srv
 )
 
 ## Generate actions in the 'action' folder

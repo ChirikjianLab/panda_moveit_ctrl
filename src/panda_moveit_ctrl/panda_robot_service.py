@@ -78,6 +78,12 @@ class PandaRobotService(object):
             self.setupCloseGripperServer()
             rospy.sleep(0.5)
         
+        # Set up TF
+        self.tfBuffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        self.base_frame = "panda_link0"
+        self.ee_frame   = ee
+        
         rospy.loginfo("Ready!")
             
     def configure_gripper(self, gripper_joint_names):
@@ -227,3 +233,28 @@ class PandaRobotService(object):
             rospy.loginfo("Failure in cartesian motion...")
 
         return MoveToCartesianResponse(success)
+    
+    def setupGetEEXformServer(self):
+        rospy.loginfo("Setting up GetEEXform server...")
+        self.GetEEXformServer = rospy.Service("get_ee_xform", GetEEXform, self.handleGetEEXform)
+        rospy.loginfo("Finish setting up GetEEXform server")
+    
+    def handleGetEEXform(self, req):
+        """Get EEXform
+        """
+        
+        xform = self.tfBuffer.lookup_transform(self.base_frame, self.ee_frame, rospy.Time())
+        
+        pos  = np.array([0.0, 0.0, 0.0])
+        quat = np.array([0.0, 0.0, 0.0, 0.0])
+
+        pos[0] = xform.transform.translation.x
+        pos[1] = xform.transform.translation.y
+        pos[2] = xform.transform.translation.z
+
+        quat[0] = xform.transform.rotation.w
+        quat[1] = xform.transform.rotation.x
+        quat[2] = xform.transform.rotation.y
+        quat[3] = xform.transform.rotation.z
+
+        return pos, quat

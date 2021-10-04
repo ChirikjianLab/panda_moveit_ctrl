@@ -15,9 +15,9 @@ if __name__ == "__main__":
     
     robot = PandaRobot(load_gripper=load_gripper)
     # robot.goMonitor()
-    # robot.goHome()
+    robot.goHome()
     time.sleep(3.0)
-    robot.open_gripper()
-    time.sleep(3.0)
-    robot.close_gripper()
+    # robot.open_gripper()
+    # time.sleep(3.0)
+    # robot.close_gripper()
     
