@@ -68,6 +68,9 @@ class PandaRobotService(object):
             self.setupMoveToCartesianServer()
             rospy.sleep(0.5)
 
+        # Set up GetEEXform server
+        self.setupGetEEXformServer()
+
         # Set up the gripper
         if load_gripper:
             gripper_group_name = "hand"
@@ -141,6 +144,8 @@ class PandaRobotService(object):
         """
 
         rospy.loginfo("move_gripper service receive: %s", req.width)
+        self.gripper.stop_action()
+        rospy.sleep(0.1)
         self.gripper.move_joints(req.width)
         rospy.sleep(0.5)
 
@@ -159,8 +164,10 @@ class PandaRobotService(object):
         """
 
         rospy.loginfo("close gripper")
-        self.gripper.close()
-        rospy.sleep(0.5)
+        self.gripper.move_joints(0, wait_for_result=False)
+        # self.gripper.grasp(0, 100)
+        rospy.sleep(3)
+        # self.gripper.stop_action()
 
         finger_position = self.finger_position()
         rospy.loginfo("Finger position: %s", finger_position)
@@ -241,8 +248,12 @@ class PandaRobotService(object):
     
     def handleGetEEXform(self, req):
         """Get EEXform
+
+        Returns:
+            pos (list of 3 float): position
+            quat(list of 4 float): quaternion [w, x, y, z]
         """
-        
+
         xform = self.tfBuffer.lookup_transform(self.base_frame, self.ee_frame, rospy.Time())
         
         pos  = np.array([0.0, 0.0, 0.0])
