@@ -13,6 +13,7 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 import franka_interface
+from franka_tools.collision_behaviour_interface import CollisionBehaviourInterface
 
 from panda_moveit_ctrl.srv import *
 
@@ -86,6 +87,12 @@ class PandaRobotService(object):
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.base_frame = "panda_link0"
         self.ee_frame   = ee
+
+        # Set up collision behavior
+        # self.CB = CollisionBehaviourInterface()
+        # joint_torques = [22.0, 22.0, 20.0, 20.0, 18.0, 16.0, 14.0]
+        # cartesian_forces = [22.0, 22.0, 22.0, 27.0, 27.0, 27.0]
+        # self.CB.set_collision_threshold(joint_torques, cartesian_forces)
         
         rospy.loginfo("Ready!")
             
