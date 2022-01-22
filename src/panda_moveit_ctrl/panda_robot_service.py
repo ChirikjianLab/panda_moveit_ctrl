@@ -149,6 +149,19 @@ class PandaRobotService(object):
 
         return MoveToJointResponse(success)
 
+    def setupGetJointConfig(self):
+        rospy.loginfo("Setting up GetJointConfig server...")
+        self.get_joint_config_server = rospy.Service("get_joint_config", GetJointConfig, self.handleGetJointConfig)
+        rospy.loginfo("Finish setting up MoveToCartesian server...")
+
+    def handleGetJointConfig(self, req):
+        """Get the current joint position."""
+
+        rospy.loginfo("get_joint_config service receive: %s", req.flag)
+        joint_config = self.group.get_current_joint_values()
+        joint_config = np.array(joint_config)
+        return GetJointConfig(joint_config)
+
     def setupMoveToCartesianServer(self):
         rospy.loginfo("Setting up MoveToCartesian server...")
         self.move_catesian_server = rospy.Service("move_to_cartesian", MoveToCartesian, self.handleMoveToCartesian)
