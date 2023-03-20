@@ -25,7 +25,8 @@ class PandaRobotService(object):
                  ee="panda_hand", 
                  move_joint=True, 
                  move_cartesian=True, 
-                 load_gripper=True
+                 load_gripper=True,
+                 force=True
         ):
         """Class used to set up service to interact with the Panda robot.
         move_joint and move_cartesian are set true if you want to
@@ -81,6 +82,14 @@ class PandaRobotService(object):
             self.setupGripperServer()
             self.setupCloseGripperServer()
             rospy.sleep(0.5)
+        
+        # Set up external force subscriber
+        if force:
+            self.ext_force_sub = rospy.Subscriber("/franka_state_controller/F_ext", WrenchStamped, self.ext_force_sub_cb)
+        self.ext_force = []
+        self.ee_force = []
+        self.save_force = None
+        self.ee_force_list = []
         
         # Set up TF
         self.tfBuffer = tf2_ros.Buffer()
@@ -276,3 +285,42 @@ class PandaRobotService(object):
         quat[3] = xform.transform.rotation.z
 
         return pos, quat
+         def ext_force_sub_cb(self, msg):
+        self.ext_force = np.array([msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z])
+        if self.save_force:
+            ee_pos, ee_quat = self.getEEXform()
+            ee_force = np.matmul(quat2rotm(ee_quat), self.ext_force)
+            self.ee_force_list.append(ee_force)
+            self.ee_pos_list.append(ee_pos)
+
+    def getExtForce(self):
+        rospy.loginfo("[Panda robot] F_ext: {}".format(self.ext_force))
+        return self.ext_force
+
+    def getEEForce(self):
+        """
+        Returns:
+            force (list of 3 float): (fx, fy, fz)
+            pos (list of 3 float): position
+           quat (list of 4 float): quaternion （w, x, y, z）
+        """
+        ee_pos, ee_quat = self.getEEXform()
+        if len(self.ext_force) == 0:
+            return [], ee_pos, ee_quat
+        ee_force = np.matmul(quat2rotm(ee_quat), self.ext_force)
+        rospy.loginfo("[Panda robot] F_ext: {}".format(self.ext_force))
+        rospy.loginfo("[Panda robot] F_ee: {}".format(ee_force))
+
+        return ee_force, ee_pos, ee_quat
+    
+    def start_save_ee_force(self):
+        ee_force, ee_pos, ee_quat = self.getEEForce()
+        self.save_force = True
+        self.ee_force_list = []
+        self.ee_pos_list = []
+        return ee_force, ee_pos, ee_quat
+    
+    def finish_save_ee_force(self, txt):
+        self.save_force = False
+        save_ee_status_list(txt, self.ee_force_list, self.ee_pos_list)
+        return txt
