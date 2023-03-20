@@ -356,3 +356,26 @@ class PandaRobotService(object):
         self.save_force = msg.data
         self.ee_force_list = []
         self.ee_pos_list = []
+    
+    @staticmethod
+    def quat2rotm(quat):
+    """Quaternion to rotation matrix.
+
+    Args:
+        quat (4, numpy array): quaternion w, x, y, z
+    Returns:
+        rotm: (3x3 numpy array): rotation matrix
+    """
+    w = quat[0]
+    x = quat[1]
+    y = quat[2]
+    z = quat[3]
+
+    s = w * w + x * x + y * y + z * z
+
+    rotm = np.array([
+      [1 - 2 * (y * y + z * z) / s, 2 * (x * y - z * w) / s, 2 * (x * z + y * w) / s],
+      [2 * (x * y + z * w) / s, 1 - 2 * (x * x + z * z) / s, 2 * (y * z - x * w) / s],
+      [2 * (x * z - y * w) / s, 2 * (y * z + x * w) / s, 1 - 2 * (x * x + y * y) / s]])
+
+    return rotm
