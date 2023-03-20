@@ -85,7 +85,8 @@ class PandaRobotService(object):
         
         # Set up external force subscriber
         if force:
-            self.ext_force_sub = rospy.Subscriber("/franka_state_controller/F_ext", WrenchStamped, self.ext_force_sub_cb)
+            self.ext_force_sub = rospy.Subscriber("/franka_state_controller/F_ext", geometry_msgs.msg.WrenchStamped, self.ext_force_sub_cb)
+            self.save_ee_force_sub = rospy.Subscriber("save_ee_force", std_msgs.msg.Int32, self.save_ee_force_sub_cb)
         self.ext_force = []
         self.ee_force = []
         self.save_force = None
@@ -285,42 +286,73 @@ class PandaRobotService(object):
         quat[3] = xform.transform.rotation.z
 
         return pos, quat
-         def ext_force_sub_cb(self, msg):
-        self.ext_force = np.array([msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z])
-        if self.save_force:
-            ee_pos, ee_quat = self.getEEXform()
-            ee_force = np.matmul(quat2rotm(ee_quat), self.ext_force)
-            self.ee_force_list.append(ee_force)
-            self.ee_pos_list.append(ee_pos)
-
-    def getExtForce(self):
-        rospy.loginfo("[Panda robot] F_ext: {}".format(self.ext_force))
-        return self.ext_force
-
-    def getEEForce(self):
+    
+    def setupGetEEForceServer(self):
+        rospy.loginfo("Setting up GetEEForce server...")
+        self.GetEEForceServer = rospy.Service("get_ee_force", GetEEForce, self.handleGetEEForceServer)
+        rospy.loginfo("Finish setting up GetEEForce server")
+    
+    def handleGetEEForceServer(self, req):
         """
         Returns:
             force (list of 3 float): (fx, fy, fz)
             pos (list of 3 float): position
            quat (list of 4 float): quaternion （w, x, y, z）
         """
-        ee_pos, ee_quat = self.getEEXform()
         if len(self.ext_force) == 0:
-            return [], ee_pos, ee_quat
-        ee_force = np.matmul(quat2rotm(ee_quat), self.ext_force)
+            return [], [], []
+        
+        xform = self.tfBuffer.lookup_transform(self.base_frame, self.ee_frame, rospy.Time())
+        
+        pos  = np.array([0.0, 0.0, 0.0])
+        quat = np.array([0.0, 0.0, 0.0, 0.0])
+
+        pos[0] = xform.transform.translation.x
+        pos[1] = xform.transform.translation.y
+        pos[2] = xform.transform.translation.z
+
+        quat[0] = xform.transform.rotation.w
+        quat[1] = xform.transform.rotation.x
+        quat[2] = xform.transform.rotation.y
+        quat[3] = xform.transform.rotation.z
+        ee_force = np.matmul(quat2rotm(quat), self.ext_force)
         rospy.loginfo("[Panda robot] F_ext: {}".format(self.ext_force))
         rospy.loginfo("[Panda robot] F_ee: {}".format(ee_force))
 
-        return ee_force, ee_pos, ee_quat
+        return ee_force, pos, quat
     
-    def start_save_ee_force(self):
-        ee_force, ee_pos, ee_quat = self.getEEForce()
-        self.save_force = True
+    def setupGetSaveEEForceServer(self):
+        rospy.loginfo("Setting up StartSaveEEForce server...")
+        self.GetSaveEEForceServer = rospy.Service("get_save_ee_force", GetSaveEEForce, self.handleGetSaveEEForceServer)
+        rospy.loginfo("Finish setting up GetEEForce server")
+
+    
+    def handleGetSaveEEForceServer(self, req):
+        self.save_force = False
+        return self.ee_force_list, self.ee_pos_list
+    
+    def ext_force_sub_cb(self, msg):
+        self.ext_force = np.array([msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z])
+        if self.save_force:
+            xform = self.tfBuffer.lookup_transform(self.base_frame, self.ee_frame, rospy.Time())
+        
+            pos  = np.array([0.0, 0.0, 0.0])
+            quat = np.array([0.0, 0.0, 0.0, 0.0])
+
+            pos[0] = xform.transform.translation.x
+            pos[1] = xform.transform.translation.y
+            pos[2] = xform.transform.translation.z
+
+            quat[0] = xform.transform.rotation.w
+            quat[1] = xform.transform.rotation.x
+            quat[2] = xform.transform.rotation.y
+            quat[3] = xform.transform.rotation.z
+
+            ee_force = np.matmul(quat2rotm(quat), self.ext_force)
+            self.ee_force_list.append(ee_force)
+            self.ee_pos_list.append(pos)
+    
+    def save_ee_force_sub_cb(self, msg):
+        self.save_force = msg.data
         self.ee_force_list = []
         self.ee_pos_list = []
-        return ee_force, ee_pos, ee_quat
-    
-    def finish_save_ee_force(self, txt):
-        self.save_force = False
-        save_ee_status_list(txt, self.ee_force_list, self.ee_pos_list)
-        return txt
