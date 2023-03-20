@@ -5,6 +5,7 @@
 from __future__ import print_function
 
 import numpy as np
+import os
 
 import rospy
 import tf2_ros
@@ -87,6 +88,8 @@ class PandaRobotService(object):
         if force:
             self.ext_force_sub = rospy.Subscriber("/franka_state_controller/F_ext", geometry_msgs.msg.WrenchStamped, self.ext_force_sub_cb)
             self.save_ee_force_sub = rospy.Subscriber("save_ee_force", std_msgs.msg.Int32, self.save_ee_force_sub_cb)
+            self.setupGetEEForceServer()
+            self.setupGetSaveEEForceServer()
         self.ext_force = []
         self.ee_force = []
         self.save_force = None
@@ -293,12 +296,6 @@ class PandaRobotService(object):
         rospy.loginfo("Finish setting up GetEEForce server")
     
     def handleGetEEForceServer(self, req):
-        """
-        Returns:
-            force (list of 3 float): (fx, fy, fz)
-            pos (list of 3 float): position
-           quat (list of 4 float): quaternion （w, x, y, z）
-        """
         if len(self.ext_force) == 0:
             return [], [], []
         
@@ -315,7 +312,7 @@ class PandaRobotService(object):
         quat[1] = xform.transform.rotation.x
         quat[2] = xform.transform.rotation.y
         quat[3] = xform.transform.rotation.z
-        ee_force = np.matmul(quat2rotm(quat), self.ext_force)
+        ee_force = np.matmul(self.quat2rotm(quat), self.ext_force)
         rospy.loginfo("[Panda robot] F_ext: {}".format(self.ext_force))
         rospy.loginfo("[Panda robot] F_ee: {}".format(ee_force))
 
@@ -329,8 +326,10 @@ class PandaRobotService(object):
     
     def handleGetSaveEEForceServer(self, req):
         self.save_force = False
-        return self.ee_force_list, self.ee_pos_list
-    
+        # import ipdb; ipdb.set_trace()
+        self.save_ee_status_list(req.txt, self.ee_force_list, self.ee_pos_list)
+        return GetSaveEEForceResponse("Success")
+
     def ext_force_sub_cb(self, msg):
         self.ext_force = np.array([msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z])
         if self.save_force:
@@ -348,7 +347,7 @@ class PandaRobotService(object):
             quat[2] = xform.transform.rotation.y
             quat[3] = xform.transform.rotation.z
 
-            ee_force = np.matmul(quat2rotm(quat), self.ext_force)
+            ee_force = np.matmul(self.quat2rotm(quat), self.ext_force)
             self.ee_force_list.append(ee_force)
             self.ee_pos_list.append(pos)
     
@@ -359,23 +358,44 @@ class PandaRobotService(object):
     
     @staticmethod
     def quat2rotm(quat):
-    """Quaternion to rotation matrix.
+        """Quaternion to rotation matrix.
 
-    Args:
-        quat (4, numpy array): quaternion w, x, y, z
-    Returns:
-        rotm: (3x3 numpy array): rotation matrix
-    """
-    w = quat[0]
-    x = quat[1]
-    y = quat[2]
-    z = quat[3]
+        Args:
+            quat (4, numpy array): quaternion w, x, y, z
+        Returns:
+            rotm: (3x3 numpy array): rotation matrix
+        """
+        w = quat[0]
+        x = quat[1]
+        y = quat[2]
+        z = quat[3]
 
-    s = w * w + x * x + y * y + z * z
+        s = w * w + x * x + y * y + z * z
 
-    rotm = np.array([
-      [1 - 2 * (y * y + z * z) / s, 2 * (x * y - z * w) / s, 2 * (x * z + y * w) / s],
-      [2 * (x * y + z * w) / s, 1 - 2 * (x * x + z * z) / s, 2 * (y * z - x * w) / s],
-      [2 * (x * z - y * w) / s, 2 * (y * z + x * w) / s, 1 - 2 * (x * x + y * y) / s]])
+        rotm = np.array([
+        [1 - 2 * (y * y + z * z) / s, 2 * (x * y - z * w) / s, 2 * (x * z + y * w) / s],
+        [2 * (x * y + z * w) / s, 1 - 2 * (x * x + z * z) / s, 2 * (y * z - x * w) / s],
+        [2 * (x * z - y * w) / s, 2 * (y * z + x * w) / s, 1 - 2 * (x * x + y * y) / s]])
 
-    return rotm
+        return rotm
+
+    @staticmethod
+    def save_ee_status_list(txt, force_list, pos_list):
+        if os.path.exists(txt):
+            os.remove(txt)
+        
+        with open(txt, 'w') as f:
+            if len(force_list) == len(pos_list):
+                for i in range(len(force_list)):
+                    pos = pos_list[i]
+                    force = force_list[i]
+                    f.write(
+                        "{:.6e}".format(pos[0]) + " " +
+                        "{:.6e}".format(pos[1]) + " " +
+                        "{:.6e}".format(pos[2]) + "\n"
+                    )
+                    f.write(
+                        "{:.6e}".format(force[0]) + " " +
+                        "{:.6e}".format(force[1]) + " " +
+                        "{:.6e}".format(force[2]) + "\n"
+                    )

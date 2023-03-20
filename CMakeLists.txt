@@ -63,6 +63,8 @@ add_service_files(
   MoveGripper.srv
   CloseGripper.srv
   GetEEXform.srv
+  GetEEForce.srv
+  GetSaveEEForce.srv
 )
 
 ## Generate actions in the 'action' folder
