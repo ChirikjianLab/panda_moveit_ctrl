@@ -85,16 +85,16 @@ class PandaRobotService(object):
             rospy.sleep(0.5)
         
         # Set up external force subscriber
+        self.ext_force = []
+        self.ee_force = []
+        self.save_force = None
+        self.ee_force_list = []
         if force:
             self.ext_force_sub = rospy.Subscriber("/franka_state_controller/F_ext", geometry_msgs.msg.WrenchStamped, self.ext_force_sub_cb)
             self.save_ee_force_sub = rospy.Subscriber("save_ee_force", std_msgs.msg.Int32, self.save_ee_force_sub_cb)
             self.setupGetEEForceServer()
             self.setupGetSaveEEForceServer()
-        self.ext_force = []
-        self.ee_force = []
-        self.save_force = None
-        self.ee_force_list = []
-        
+
         # Set up TF
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -352,9 +352,11 @@ class PandaRobotService(object):
             self.ee_pos_list.append(pos)
     
     def save_ee_force_sub_cb(self, msg):
-        self.save_force = msg.data
-        self.ee_force_list = []
-        self.ee_pos_list = []
+        if msg.data == 1:
+            rospy.loginfo("Start saving ee force...")
+            self.save_force = True
+            self.ee_force_list = []
+            self.ee_pos_list = []
     
     @staticmethod
     def quat2rotm(quat):
