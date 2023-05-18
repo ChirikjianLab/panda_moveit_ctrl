@@ -65,6 +65,8 @@ add_service_files(
   GetEEXform.srv
   GetEEForce.srv
   GetSaveEEForce.srv
+  GetJointConfig.srv
+  GetSaveJointConfig.srv
 )
 
 ## Generate actions in the 'action' folder

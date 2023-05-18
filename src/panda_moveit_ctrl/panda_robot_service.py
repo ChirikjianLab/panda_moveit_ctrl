@@ -3,6 +3,7 @@
 # Jan 21, 2021
 
 from __future__ import print_function
+from ntpath import join
 
 import numpy as np
 import os
@@ -13,6 +14,7 @@ import tf2_ros
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
+import sensor_msgs.msg
 import franka_interface
 from franka_tools.collision_behaviour_interface import CollisionBehaviourInterface
 
@@ -27,7 +29,8 @@ class PandaRobotService(object):
                  move_joint=True, 
                  move_cartesian=True, 
                  load_gripper=True,
-                 force=True
+                 force=True,
+                 joint_config=True
         ):
         """Class used to set up service to interact with the Panda robot.
         move_joint and move_cartesian are set true if you want to
@@ -95,6 +98,15 @@ class PandaRobotService(object):
             self.setupGetEEForceServer()
             self.setupGetSaveEEForceServer()
 
+        # Set up joint status subscriber
+        self.joint_config = []
+        self.joint_config_list = []
+        self.save_joint_config = None
+        if joint_config:
+            self.joint_config_sub = rospy.Subscriber("/franka_state_controller/joint_states", sensor_msgs.msg.JointState, self.joint_config_sub_cb)
+            self.save_joint_config_sub = rospy.Subscriber("save_joint_config", std_msgs.msg.Int32, self.save_joint_config_sub_cb)
+            self.setupGetJointConfigServer()
+            self.setupGetSaveJointConfigServer()
         # Set up TF
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -290,6 +302,9 @@ class PandaRobotService(object):
 
         return pos, quat
     
+    #################################
+    # EE force
+    #################################
     def setupGetEEForceServer(self):
         rospy.loginfo("Setting up GetEEForce server...")
         self.GetEEForceServer = rospy.Service("get_ee_force", GetEEForce, self.handleGetEEForceServer)
@@ -323,7 +338,6 @@ class PandaRobotService(object):
         self.GetSaveEEForceServer = rospy.Service("get_save_ee_force", GetSaveEEForce, self.handleGetSaveEEForceServer)
         rospy.loginfo("Finish setting up GetEEForce server")
 
-    
     def handleGetSaveEEForceServer(self, req):
         self.save_force = False
         # import ipdb; ipdb.set_trace()
@@ -358,6 +372,47 @@ class PandaRobotService(object):
             self.ee_force_list = []
             self.ee_pos_list = []
     
+    #################################
+    # Joint config
+    #################################
+
+    def joint_config_sub_cb(self, msg):
+        joint_config = msg.position
+        self.joint_config = joint_config[:7]
+        # [joint_config[i] for i in range(7)]
+
+        if self.save_joint_config:
+            self.joint_config_list.append(self.joint_config)
+
+    def save_joint_config_sub_cb(self, msg):
+         if msg.data == 1:
+            rospy.loginfo("Start saving joint config...")
+            self.save_joint_config = True
+            self.joint_config_list = []
+    
+    def setupGetJointConfigServer(self):
+        rospy.loginfo("Setting up GetJointConfig server...")
+        self.GetJointConfigServer = rospy.Service("get_joint_config", GetJointConfig, self.handleGetJointConfigServer)
+        rospy.loginfo("Finish setting up GetJointConfig server")
+    
+    def handleGetJointConfigServer(self, req):
+        if len(self.joint_config) == 0:
+            return []
+        # import ipdb; ipdb.set_trace()
+        return [self.joint_config]
+    
+    def setupGetSaveJointConfigServer(self):
+        rospy.loginfo("Setting up StartSaveJointConfig server...")
+        self.GetSaveJointConfigServer = rospy.Service("get_save_joint_config", GetSaveJointConfig, self.handleGetSaveJointConfigServer)
+        rospy.loginfo("Finish setting up GetSaveJointConfig server")
+
+    def handleGetSaveJointConfigServer(self, req):
+        self.save_joint_config = False
+        # import ipdb; ipdb.set_trace()
+        self.save_joint_config_list(req.txt, self.joint_config_list)
+        return GetSaveJointConfigResponse("Success")
+
+
     @staticmethod
     def quat2rotm(quat):
         """Quaternion to rotation matrix.
@@ -401,3 +456,17 @@ class PandaRobotService(object):
                         "{:.6e}".format(force[1]) + " " +
                         "{:.6e}".format(force[2]) + "\n"
                     )
+    
+    @staticmethod
+    def save_joint_config_list(txt, joint_config_list):
+        if os.path.exists(txt):
+            os.remove(txt)
+        
+        with open(txt, 'w') as f:
+            for i in range(len(joint_config_list)):
+                joint_config = joint_config_list[i]
+                for j in range(len(joint_config)):
+                    f.write(
+                        "{:.6e}".format(joint_config[j]) + " " 
+                    )
+                f.write( "\n")
