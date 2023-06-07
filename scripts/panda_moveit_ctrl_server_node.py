@@ -14,7 +14,9 @@ if __name__ == "__main__":
     acc = 0.4
     load_gripper = True
     ee = "panda_hand"
-    PRS = PandaRobotService(vel, acc, ee=ee, load_gripper=load_gripper)
+    doc_dir = "/home/sisu/catkin_ws/src/panda_moveit_ctrl/doc"
+    PRS = PandaRobotService(vel, acc, ee=ee, load_gripper=load_gripper,
+                        doc_dir=doc_dir)
 
     
     rospy.spin()

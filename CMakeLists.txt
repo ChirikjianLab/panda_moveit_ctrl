@@ -67,6 +67,7 @@ add_service_files(
   GetSaveEEForce.srv
   GetJointConfig.srv
   GetSaveJointConfig.srv
+  GetCamImage.srv
 )
 
 ## Generate actions in the 'action' folder

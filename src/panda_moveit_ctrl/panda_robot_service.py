@@ -15,6 +15,7 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 import sensor_msgs.msg
+import franka_msgs.msg
 import franka_interface
 from franka_tools.collision_behaviour_interface import CollisionBehaviourInterface
 
@@ -30,7 +31,8 @@ class PandaRobotService(object):
                  move_cartesian=True, 
                  load_gripper=True,
                  force=True,
-                 joint_config=True
+                 joint_config=True,
+                 doc_dir=None
         ):
         """Class used to set up service to interact with the Panda robot.
         move_joint and move_cartesian are set true if you want to
@@ -92,11 +94,18 @@ class PandaRobotService(object):
         self.ee_force = []
         self.save_force = None
         self.ee_force_list = []
+        self.img_idx = None
         if force:
+            # self.franka_state_sub = rospy.Subscriber("/franka_state_controller/franka_states", franka_msgs.msg.FrankaState, self.franka_state_sub_cb)
             self.ext_force_sub = rospy.Subscriber("/franka_state_controller/F_ext", geometry_msgs.msg.WrenchStamped, self.ext_force_sub_cb)
             self.save_ee_force_sub = rospy.Subscriber("save_ee_force", std_msgs.msg.Int32, self.save_ee_force_sub_cb)
             self.setupGetEEForceServer()
             self.setupGetSaveEEForceServer()
+        if doc_dir:
+            self.img_dir = os.path.join(doc_dir, "img")
+            if os.path.exists(self.img_dir):
+                os.rmdir(self.img_dir)
+            os.mkdir(self.img_dir)
 
         # Set up joint status subscriber
         self.joint_config = []
@@ -342,7 +351,7 @@ class PandaRobotService(object):
         self.save_force = False
         # import ipdb; ipdb.set_trace()
         self.save_ee_status_list(req.txt, self.ee_force_list, self.ee_pos_list)
-        return GetSaveEEForceResponse("Success")
+        return self.img_dir
 
     def ext_force_sub_cb(self, msg):
         self.ext_force = np.array([msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z])
@@ -364,6 +373,9 @@ class PandaRobotService(object):
             ee_force = np.matmul(self.quat2rotm(quat), self.ext_force)
             self.ee_force_list.append(ee_force)
             self.ee_pos_list.append(pos)
+
+            if self.img_idx is not None:
+                self.get_cam_image(self.img_dir, self.img_idx)
     
     def save_ee_force_sub_cb(self, msg):
         if msg.data == 1:
@@ -371,7 +383,28 @@ class PandaRobotService(object):
             self.save_force = True
             self.ee_force_list = []
             self.ee_pos_list = []
+            self.img_idx = 0
+            if os.path.exists(self.img_dir):
+                os.rmdir(self.img_dir)
+            os.mkdir(self.img_dir)
     
+    def get_cam_image(self, data_dir, id):
+        try:
+            get_cam_image_client = rospy.ServiceProxy(
+                'get_cam_image', 
+                GetCamImage)
+            rgb_path = os.path.join(data_dir, "rgb_%i.png" % id)
+            depth_path = os.path.join(data_dir, "depth_%i.png" % id)
+            pc_path = os.path.join(data_dir, "pc_%i.ply" % id)
+            resp = get_cam_image_client(rgb_path, depth_path, pc_path)
+
+        except rospy.ServiceException as e:
+            rospy.loginfo("[Main] Service call failed: {}".format(e))
+    
+    # def franka_state_sub_cb(self, msg):
+    #     f_x_cload = msg.F_x_Cload
+    #     f_x_ctotal = msg.F_x_Ctotal
+    #     print(msg)
     #################################
     # Joint config
     #################################

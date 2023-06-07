@@ -1,0 +1,5 @@
+string rgb_path
+string depth_path
+string pc_path
+----
+string success
